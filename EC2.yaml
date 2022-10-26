@@ -1,0 +1,146 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+  SanaPubEc2Instance:
+     Type: AWS::EC2::Instance
+     Properties:
+      ImageId: ami-09d3b3274b6c5d4aa
+      InstanceType: t2.micro
+      Tags:
+        - Key: Name
+          Value: Ashok-Pub-Ec2
+      KeyName: redhat
+      NetworkInterfaces:
+           - DeviceIndex: 0
+             AssociatePublicIpAddress: false
+             SubnetId: !Ref AshokPubSubnet
+             GroupSet: 
+             - !Ref AshokPublicSecurityGroup
+
+  SanaPvtEc2Instance:
+     Type: AWS::EC2::Instance
+     Properties:
+      ImageId: ami-09d3b3274b6c5d4aa
+      InstanceType: t2.micro
+      Tags:
+        - Key: Name
+          Value: Ashok-Pvt-Ec2
+      KeyName: redhat
+      NetworkInterfaces:
+           - DeviceIndex: 0
+             AssociatePublicIpAddress: false
+             SubnetId: !Ref AshokPvtSubnet
+             GroupSet: 
+             - !Ref AshokPublicSecurityGroup
+
+  AshokVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+      - Key: Name
+        Value: Ashokvpc
+  
+  AshokInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: Ashok-Igw   
+
+  AshokAttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: AshokVPC
+      InternetGatewayId:
+        Ref: AshokInternetGateway  
+
+  AshokPubSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: AshokVPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: "true"
+      Tags:
+      - Key: Name
+        Value: Ashok-Pub-Sub  
+
+  AshokPvtSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: AshokVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: Ashok-Pvt-Sub  
+
+  AshokPubRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: AshokVPC
+      Tags:
+      - Key: Name
+        Value: Ashok-Pub-Rt   
+
+  AshokPvtRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: AshokVPC
+      Tags:
+      - Key: Name
+        Value: Dell-Pvt-Rt
+        
+  AshokRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AshokAttachGateway
+    Properties:
+       RouteTableId:
+         Ref: AshokPubRouteTable
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId:
+         Ref: AshokInternetGateway                  
+
+  AshokPubSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: AshokPubSubnet
+      RouteTableId:
+        Ref: AshokPubRouteTable
+
+  AshokSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: AshokPvtSubnet
+      RouteTableId:
+        Ref: AshokPvtRouteTable 
+
+  AshokPublicSecurityGroup:
+        Type: 'AWS::EC2::SecurityGroup'
+        Properties:
+          VpcId: !Ref AshokVPC
+          GroupDescription: SG to allow SSH access via port 22,80
+          SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: '22'
+            ToPort: '22'
+            CidrIp: '0.0.0.0/0'
+          - IpProtocol: tcp
+            FromPort: '80'
+            ToPort: '80'
+            CidrIp: '0.0.0.0/0'
+          Tags:
+           - Key: Name
+             Value: Ashok-SG                                               
+
+                
